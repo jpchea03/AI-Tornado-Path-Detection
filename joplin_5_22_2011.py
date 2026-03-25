@@ -73,8 +73,8 @@ for f in sorted(os.listdir(SAVE_DIR)):
 
 print('All done!')
 
-# --Visualization--
-scan_path = downloaded[5] # scan at 22:34:08 UTC, near start of tornado
+# --5:34PM CDT--
+scan_path = downloaded[5]
 print(f'\nVisualizing {os.path.basename(scan_path)}...')
 radar = pyart.io.read_nexrad_archive(scan_path)
 
@@ -113,4 +113,46 @@ ax2.set_title('Velocity – 22:34 UTC')
 plt.suptitle('KSGF – 22:34 UTC (5:34 PM CDT) May 22, 2011', fontsize=14)
 plt.tight_layout()
 plt.savefig('plots/joplin_ref_vel_2234.png', dpi=150)
+plt.show()
+
+
+# 5:39 PM CDT
+scan_path = downloaded[6]
+print(f'\nVisualizing {os.path.basename(scan_path)}...')
+radar = pyart.io.read_nexrad_archive(scan_path)
+fig = plt.figure(figsize=(16, 8))
+
+# Reflectivity
+ax1 = fig.add_subplot(1, 2, 1, projection=ccrs.PlateCarree())
+display = pyart.graph.RadarMapDisplay(radar)
+display.plot_ppi_map(
+    'reflectivity',
+    sweep=0,
+    ax=ax1,
+    vmin=-20, vmax=75,
+    min_lon=-95.5, max_lon=-93.5,
+    min_lat=36.5, max_lat=38.0,
+    resolution='10m',
+    cmap='NWSRef',
+)
+ax1.set_title('Reflectivity – 22:39 UTC')
+
+# Velocity
+ax2 = fig.add_subplot(1, 2, 2, projection=ccrs.PlateCarree())
+display2 = pyart.graph.RadarMapDisplay(radar)
+display2.plot_ppi_map(
+    'velocity',
+    sweep=1,
+    ax=ax2,
+    vmin=-30, vmax=30,
+    min_lon=-95.5, max_lon=-93.5,
+    min_lat=36.5, max_lat=38.0,
+    resolution='10m',
+    cmap='NWSVel',
+)
+ax2.set_title('Velocity – 22:39 UTC')
+
+plt.suptitle('KSGF – 22:39 UTC (5:39 PM CDT) May 22, 2011', fontsize=14)
+plt.tight_layout()
+plt.savefig('plots/joplin_ref_vel_2239.png', dpi=150)
 plt.show()
