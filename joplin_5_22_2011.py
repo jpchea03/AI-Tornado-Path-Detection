@@ -1,10 +1,14 @@
+# Title: joplin_5_22_2011.py
 # Author: Joseph Cheatham
-# Description: Downloads NEXRAD Level-II data for the 2011 Joplin tornado
+# Description: Downloads and visualizes NEXRAD Level-II data for the 2011 Joplin tornado
 
 import boto3
 import os
 from botocore import UNSIGNED
 from botocore.config import Config
+import pyart
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
 
 SAVE_DIR = 'nexrad_data'
 os.makedirs(SAVE_DIR, exist_ok=True)
@@ -17,8 +21,7 @@ s3 = boto3.client(
     config=Config(signature_version=UNSIGNED)
 )
 
-# Joplin tornado was on the ground ~2234-2312 UTC
-# Grabbing 2200-2330 UTC to capture full lifecycle
+# Radar scan files from s3
 TORNADO_SCANS = [
     '2011/05/22/KSGF/KSGF20110522_220959_V03.gz',
     '2011/05/22/KSGF/KSGF20110522_221449_V03.gz',
@@ -55,7 +58,7 @@ def download_scan(key):
     except Exception as e:
         print(f'  Failed: {e}')
         return None
-
+    
 print(f'Downloading {len(TORNADO_SCANS)} scans...\n')
 downloaded = []
 for key in TORNADO_SCANS:
@@ -69,3 +72,45 @@ for f in sorted(os.listdir(SAVE_DIR)):
     print(f'  {f}')
 
 print('All done!')
+
+# --Visualization--
+scan_path = downloaded[5] # scan at 22:34:08 UTC, near start of tornado
+print(f'\nVisualizing {os.path.basename(scan_path)}...')
+radar = pyart.io.read_nexrad_archive(scan_path)
+
+fig = plt.figure(figsize=(16, 8))
+
+# Reflectivity
+ax1 = fig.add_subplot(1, 2, 1, projection=ccrs.PlateCarree())
+display = pyart.graph.RadarMapDisplay(radar)
+display.plot_ppi_map(
+    'reflectivity',
+    sweep=0,
+    ax=ax1,
+    vmin=-20, vmax=75,
+    min_lon=-95.5, max_lon=-93.5,
+    min_lat=36.5, max_lat=38.0,
+    resolution='10m',
+    cmap='NWSRef',
+)
+ax1.set_title('Reflectivity – 22:34 UTC')
+
+# Velocity
+ax2 = fig.add_subplot(1, 2, 2, projection=ccrs.PlateCarree())
+display2 = pyart.graph.RadarMapDisplay(radar)
+display2.plot_ppi_map(
+    'velocity',
+    sweep=1,
+    ax=ax2,
+    vmin=-30, vmax=30,
+    min_lon=-95.5, max_lon=-93.5,
+    min_lat=36.5, max_lat=38.0,
+    resolution='10m',
+    cmap='NWSVel',
+)
+ax2.set_title('Velocity – 22:34 UTC')
+
+plt.suptitle('KSGF – 22:34 UTC (5:34 PM CDT) May 22, 2011', fontsize=14)
+plt.tight_layout()
+plt.savefig('plots/joplin_ref_vel_2234.png', dpi=150)
+plt.show()
